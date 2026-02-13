@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election Results 1080p</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;600;800;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Anuphan', sans-serif; 
+            background-color: #000; /* พื้นหลังข้างนอกเป็นสีดำ */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* พื้นที่จับภาพขนาด 16:9 (1920x1080) */
+        #capture-area { 
+            width: 1920px; 
+            height: 1080px; 
+            background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f1f5f9 100%); 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            /* ปรับ Scale อัตโนมัติให้พอดีหน้าจอคนดู แต่ขนาดข้างในยังเป็น 1920x1080 */
+            transform: scale(min(calc(100vw / 1920), calc(100vh / 1080)));
+            transform-origin: center;
+            flex-shrink: 0;
+        }
+
+        .anim-item { opacity: 0; transform: translateY(50px); transition: all 0.8s cubic-bezier(0.25, 1.2, 0.3, 1); }
+        .anim-item.show { opacity: 1; transform: translateY(0); }
+
+        .candidate-card { 
+            width: 550px; 
+            height: 600px; 
+            background: white; 
+            border-radius: 4rem; 
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .is-active.card-1 { box-shadow: 0 40px 100px -20px rgba(124, 58, 237, 0.4); border-color: #c084fc; }
+        .is-active.card-2 { box-shadow: 0 40px 100px -20px rgba(234, 88, 12, 0.4); border-color: #fb923c; }
+
+        .img-layer { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-end; }
+        .img-bg { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.1; filter: grayscale(1); transition: 1s ease; }
+        .is-active .img-bg { opacity: 0.2; filter: grayscale(0); transform: scale(1.1); }
+        .img-front { height: 85%; object-fit: contain; z-index: 10; transition: 0.8s ease; transform: translateY(20px); }
+        .is-active .img-front { transform: translateY(0) scale(1.05); filter: drop-shadow(0 20px 30px rgba(0,0,0,0.2)); }
+
+        #sweep {
+            position: absolute; inset: 0; z-index: 100; pointer-events: none;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+            width: 20%; transform: skewX(-20deg) translateX(-500%);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="capture-area">
+        <div id="sweep"></div>
+
+        <div class="text-center mb-16 anim-item" id="header">
+            <p class="text-3xl text-slate-400 font-bold tracking-[0.3em] mb-4 uppercase">ผลการเลือกตั้งสภานักเรียน</p>
+            <h1 class="text-8xl font-black text-slate-900 tracking-tighter mb-6">โรงเรียนด่านขุนทด</h1>
+            <div class="inline-block bg-emerald-500 text-white px-10 py-3 rounded-full shadow-lg">
+                <p class="text-2xl font-black tracking-widest uppercase">สรุปผลคะแนนอย่างเป็นทางการ</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-12 w-full">
+            <div class="flex gap-20 justify-center w-full">
+                <div class="candidate-card anim-item" id="c1">
+                    <div class="img-layer">
+                        <img src="https://votedkt.ct.ws/assets/images/logo_party1.png" class="img-bg">
+                        <img src="https://votedkt.ct.ws/assets/images/candidate1.png" class="img-front">
+                    </div>
+                    <div class="absolute inset-0 z-20 p-10 flex flex-col justify-between pointer-events-none">
+                        <div class="w-20 h-20 bg-purple-600 text-white rounded-3xl flex items-center justify-center text-5xl font-black shadow-xl">1</div>
+                        <div class="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 text-center border border-white shadow-2xl">
+                            <h2 class="text-4xl font-black text-slate-800 mb-2">Gen Z Vision</h2>
+                            <p class="text-6xl font-black text-purple-600 tracking-tighter" id="score1">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="candidate-card anim-item" id="c2">
+                    <div class="img-layer">
+                        <img src="https://votedkt.ct.ws/assets/images/logo_party2.png" class="img-bg">
+                        <img src="https://votedkt.ct.ws/assets/images/candidate2.png" class="img-front">
+                    </div>
+                    <div class="absolute inset-0 z-20 p-10 flex flex-col justify-between pointer-events-none">
+                        <div class="w-20 h-20 bg-orange-600 text-white rounded-3xl flex items-center justify-center text-5xl font-black shadow-xl">2</div>
+                        <div class="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 text-center border border-white shadow-2xl">
+                            <h2 class="text-4xl font-black text-slate-800 mb-2">DKT RISE UP</h2>
+                            <p class="text-6xl font-black text-orange-600 tracking-tighter" id="score2">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-7xl grid grid-cols-5 gap-8 anim-item" id="stats">
+                <div class="bg-white rounded-3xl p-8 text-center shadow-sm border border-slate-100">
+                    <p class="text-slate-400 text-sm font-black uppercase mb-2">ผู้มีสิทธิ์</p>
+                    <p class="text-4xl font-black text-slate-800">2,898</p>
+                </div>
+                <div class="bg-blue-50 rounded-3xl p-8 text-center shadow-sm border border-blue-100">
+                    <p class="text-blue-500 text-sm font-black uppercase mb-2">มาใช้สิทธิ์</p>
+                    <p class="text-4xl font-black text-blue-700">2,335</p>
+                </div>
+                <div class="bg-indigo-50 rounded-3xl p-8 text-center shadow-sm border border-indigo-100">
+                    <p class="text-indigo-500 text-sm font-black uppercase mb-2">ร้อยละ</p>
+                    <p class="text-4xl font-black text-indigo-700">80.57</p>
+                </div>
+                <div class="bg-emerald-50 rounded-3xl p-8 text-center shadow-sm border border-emerald-100">
+                    <p class="text-emerald-500 text-sm font-black uppercase mb-2">บัตรดี</p>
+                    <p class="text-4xl font-black text-emerald-600">2,090</p>
+                </div>
+                <div class="bg-rose-50 rounded-3xl p-8 text-center shadow-sm border border-rose-100">
+                    <p class="text-rose-500 text-sm font-black uppercase mb-2">เสีย / ไม่ลงคะแนน</p>
+                    <p class="text-4xl font-black text-rose-600">76 / 169</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        async function runAnimation() {
+            // 1. แสดง Header
+            document.getElementById('header').classList.add('show');
+            await delay(1000);
+
+            // 2. แสดงเบอร์ 1 + คะแนน
+            const c1 = document.getElementById('c1');
+            c1.classList.add('show');
+            await delay(800);
+            c1.classList.add('is-active', 'card-1');
+            animateNumber('score1', 1281);
+            await delay(1500);
+
+            // 3. แสดงเบอร์ 2 + คะแนน
+            const c2 = document.getElementById('c2');
+            c2.classList.add('show');
+            await delay(800);
+            c2.classList.add('is-active', 'card-2');
+            animateNumber('score2', 809);
+            await delay(1500);
+
+            // 4. แสดงแถบสถิติ
+            document.getElementById('stats').classList.add('show');
+            
+            // 5. เอฟเฟกต์แสงกวาดปิดท้าย (Sweep)
+            await delay(1000);
+            const sweep = document.getElementById('sweep');
+            sweep.style.display = 'block';
+            sweep.animate([
+                { transform: 'skewX(-20deg) translateX(-500%)', opacity: 0 },
+                { transform: 'skewX(-20deg) translateX(1000%)', opacity: 1 }
+            ], { duration: 1500, easing: 'ease-in-out' });
+        }
+
+        function animateNumber(id, target) {
+            let current = 0;
+            const el = document.getElementById(id);
+            const step = target / 50;
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    el.innerText = target.toLocaleString();
+                    clearInterval(timer);
+                } else {
+                    el.innerText = Math.floor(current).toLocaleString();
+                }
+            }, 20);
+        }
+
+        // เริ่มแอนิเมชันทันทีที่โหลดเสร็จ
+        window.onload = () => {
+            setTimeout(runAnimation, 500);
+        };
+    </script>
+</body>
+</html>
